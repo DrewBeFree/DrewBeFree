@@ -326,29 +326,69 @@
   let isListening = false;
   let isSending   = false;
   let recognition = null;
+  let apiKey      = localStorage.getItem('claude-api-key') || '';
+  const MODEL     = 'claude-3-5-sonnet-20241022';
+  const SYSTEM    = 'You are Drew, an expert dog training coach. Give clear, practical advice for dog training scenarios. Keep responses concise and actionable. When the user reports what their dog did, acknowledge it, explain why it happened, and suggest the next training step.';
 
   // ── Boot ─────────────────────────────────────────────────────────────────
   (async () => {
-    const history = await fetchJSON('/api/history');
+    if (!apiKey) {
+      apiKey = prompt('Enter your Claude API key (from console.anthropic.com):');
+      if (!apiKey) {
+        setStatus('API key required to use this app');
+        return;
+      }
+      localStorage.setItem('claude-api-key', apiKey);
+    }
+
+    const history = loadHistory();
     if (history.length) {
       hideEmpty();
       history.forEach(m => appendBubble(m.role === 'user' ? 'user' : 'trainer', m.content));
       scrollBottom();
     } else {
-      // Auto-start by sending an empty greeting trigger
       await sendRaw('Hello! Let\'s start a training session.');
     }
     setupSpeechRecognition();
   })();
 
+  // ── History Management ────────────────────────────────────────────────────
+  function loadHistory() {
+    try {
+      return JSON.parse(localStorage.getItem('dog-trainer-history') || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  function saveHistory(messages) {
+    localStorage.setItem('dog-trainer-history', JSON.stringify(messages));
+  }
+
   // ── API helpers ───────────────────────────────────────────────────────────
-  async function fetchJSON(url, options) {
-    const res = await fetch(url, options);
+  async function callClaudeAPI(messages) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1024,
+        system: SYSTEM,
+        messages: messages,
+      }),
+    });
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || res.statusText);
+      throw new Error(err.error?.message || res.statusText);
     }
-    return res.json();
+    const data = await res.json();
+    return data.content[0].text;
   }
 
   async function sendRaw(text) {
@@ -359,19 +399,23 @@
     const indicator = showTyping();
     setStatus('Drew is thinking...');
     try {
-      const data = await fetchJSON('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: text }),
-      });
+      const history = loadHistory();
+      const messages = [...history, { role: 'user', content: text }];
+      const response = await callClaudeAPI(messages);
       removeTyping(indicator);
-      appendBubble('trainer', data.response);
+      appendBubble('trainer', response);
       scrollBottom();
-      if (ttsEnabled) speak(data.response);
+      messages.push({ role: 'assistant', content: response });
+      saveHistory(messages);
+      if (ttsEnabled) speak(response);
       setStatus('');
     } catch (e) {
       removeTyping(indicator);
       setStatus('Error: ' + e.message);
+      if (e.message.includes('API key')) {
+        localStorage.removeItem('claude-api-key');
+        apiKey = '';
+      }
     } finally {
       isSending = false;
     }
@@ -406,7 +450,7 @@
 
   async function clearSession() {
     if (!confirm('Start a new training session? History will be cleared.')) return;
-    await fetchJSON('/api/history', { method: 'DELETE' });
+    saveHistory([]);
     document.getElementById('chat').innerHTML = '';
     document.getElementById('chat').insertAdjacentHTML('beforeend',
       '<div class="empty-state" id="empty-state"><div class="paw">🐶</div><div>Starting new session…</div></div>');
