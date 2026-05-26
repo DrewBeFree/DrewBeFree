@@ -91,7 +91,7 @@ export function useReminders() {
 
       if (document.visibilityState === 'visible') {
         setActiveAlert({ ...reminder })
-      } else if (Notification.permission === 'granted') {
+      } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         const n = new Notification('ADHD Snap', {
           body: reminder.text.toUpperCase(),
           requireInteraction: true,
