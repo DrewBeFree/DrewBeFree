@@ -50,6 +50,8 @@ export default function App() {
         <ReminderList reminders={reminders} onDismiss={dismissReminder} />
       </main>
 
+      <p className="build-time">built {__BUILD_TIME__}</p>
+
       <button
         className="capture-fab"
         onClick={() => setCapturing(true)}

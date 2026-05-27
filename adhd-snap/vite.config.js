@@ -4,6 +4,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: '/DrewBeFree/',
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+    })),
+  },
   plugins: [
     react(),
     VitePWA({

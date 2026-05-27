@@ -199,6 +199,20 @@ main {
   transform: scale(0.93);
 }
 
+/* ─── Build timestamp ─── */
+.build-time {
+  position: fixed;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  color: var(--muted);
+  opacity: 0.4;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 /* ─── FAB ─── */
 .capture-fab {
   position: fixed;
