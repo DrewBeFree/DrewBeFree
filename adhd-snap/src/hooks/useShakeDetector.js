@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-const THRESHOLD = 9    // m/s² — lower = more sensitive
+const THRESHOLD = 22   // m/s² — lower = more sensitive
 const COOLDOWN  = 1200 // ms between triggers
 
 export function useShakeDetector(onShake) {
