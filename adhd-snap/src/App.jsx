@@ -32,6 +32,7 @@ export default function App() {
             ? `${activeCount} pending`
             : 'shake to capture'}
         </p>
+        <p className="build-time">built {__BUILD_TIME__}</p>
       </header>
 
       {needsPermission && (
