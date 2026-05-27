@@ -202,12 +202,11 @@ main {
 /* ─── Build timestamp ─── */
 .build-time {
   position: fixed;
-  bottom: 0.5rem;
+  bottom: 0.6rem;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.6rem;
-  color: var(--muted);
-  opacity: 0.4;
+  font-size: 0.75rem;
+  color: var(--accent);
   letter-spacing: 0.05em;
   pointer-events: none;
   white-space: nowrap;
