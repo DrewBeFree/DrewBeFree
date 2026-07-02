@@ -1,0 +1,52 @@
+# Canonical reusable trigger workflow.
+# Copy this file to .github/workflows/trigger-task-sync.yml in any repo you want to participate in the GitHub <-> Leantime sync.
+#
+# It fires on issue changes (all types) and pushes that touch BACKLOG.md.
+# It then dispatches to the central receiver in DrewBeFree/infra, which runs the ecosystem_task_sync.py.
+
+name: Trigger Task Sync
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - deleted
+      - closed
+      - reopened
+      - labeled
+      - unlabeled
+      - assigned
+      - unassigned
+  push:
+    paths:
+      - 'BACKLOG.md'
+      - 'backlog.md'
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository Dispatch to Central Infra Sync
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          # Recommended: create a secret DISPATCH_PAT in this repo with a PAT that has
+          # "repo" and "workflow" scopes and can dispatch to DrewBeFree/infra.
+          # If using GITHUB_TOKEN, ensure "Allow GitHub Actions to create and approve pull requests"
+          # and workflow permissions are enabled in repo settings.
+          token: ${{ secrets.DISPATCH_PAT || secrets.GITHUB_TOKEN }}
+          repository: DrewBeFree/infra
+          event-type: task-sync-request
+          client-payload: |
+            {
+              "source_repo": "${{ github.repository }}",
+              "event": "${{ github.event_name }}",
+              "action": "${{ github.event.action || '' }}",
+              "ref": "${{ github.ref }}",
+              "actor": "${{ github.actor }}",
+              "issue_number": "${{ github.event.issue.number || '' }}"
+            }
+
+      - name: Log dispatch
+        run: |
+          echo "Dispatched task-sync-request for ${{ github.repository }}"
